@@ -63,8 +63,9 @@ public class ExpertController {
     }
 
     @PostMapping("/submit-offer-for-order")
-    public void submitOfferForOrder(@RequestBody OfferRequestDTO offerRequestDTO) {
-        expertService.submitAnOffer(offerRequestDTO);
+    public void submitOfferForOrder(@RequestBody OfferRequestDTO offerRequestDTO, Authentication authentication) {
+        Expert authenticatedExpert = (Expert) authentication.getPrincipal();
+        expertService.submitAnOffer(authenticatedExpert.getId(), offerRequestDTO);
     }
 
     @GetMapping("/show-expert-rate")
@@ -97,27 +98,27 @@ public class ExpertController {
         return expertService.showAllExpertOffersRejected(authenticatedExpert.getId());
     }
 
-    @GetMapping("/show-offer-history/{isAccept}")
-    public List<OfferResponseDTO> viewOfferHistory(@PathVariable boolean isAccept, Authentication authentication) {
+    @GetMapping("/show-offer-history")
+    public List<OfferResponseDTO> viewOfferHistory( Authentication authentication) {
         Expert authenticatedExpert = (Expert) authentication.getPrincipal();
         List<OfferResponseDTO> offerDTOS = new ArrayList<>();
-        expertService.showOfferHistory(authenticatedExpert.getId(), isAccept)
+        expertService.showOfferHistory(authenticatedExpert.getId())
                 .forEach(
                         offer -> offerDTOS.add(
                                 OfferMapper.INSTANCE.modelToResponseDto(offer)));
         return offerDTOS;
     }
 
-    @GetMapping("/show-order-history/{isAccept}")
-    public List<OrderResponseDTO> viewOrderHistory(@PathVariable boolean isAccept, Authentication authentication) {
+    @GetMapping("/show-order-history")
+    public List<OrderResponseDTO> viewOrderHistory(Authentication authentication) {
         Expert authenticatedExpert = (Expert) authentication.getPrincipal();
-        return expertService.showOrderHistory(authenticatedExpert.getId(), isAccept);
+        return expertService.showOrderHistory(authenticatedExpert.getId());
     }
 
     @PostMapping("/show-order-history-by-order-status")
-    public List<OrderResponseDTO> viewOrderHistory(@RequestBody ExpertHistoryDTO expertHistoryDTO, Authentication authentication) {
+    public List<OrderResponseDTO> viewOrderHistory(@RequestBody OrderHistoryDTO orderHistoryDTO, Authentication authentication) {
         Expert authenticatedExpert = (Expert) authentication.getPrincipal();
-        return expertService.showOrderHistoryByOrderStatus(authenticatedExpert.getId(), expertHistoryDTO.isAccept(), expertHistoryDTO.getOrderStatus());
+        return expertService.showOrderHistoryByOrderStatus(authenticatedExpert.getId(), orderHistoryDTO.getOrderStatus());
     }
 
     @GetMapping("/show-credit")
