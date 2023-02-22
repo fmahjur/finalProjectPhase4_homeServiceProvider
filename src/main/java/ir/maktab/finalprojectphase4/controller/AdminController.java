@@ -94,6 +94,11 @@ public class AdminController {
         return adminService.customerFilter(customerDTO);
     }
 
+    @PostMapping("/filter-orders")
+    public List<FilterOrderResponseDTO> customersFilter(@RequestBody FilterOrderDTO filterOrderDTO) {
+        return adminService.ordersFilter(filterOrderDTO);
+    }
+
     @GetMapping("/show-sub-services-expert/{subServiceId}")
     public List<ExpertResponseDTO> viewSubServiceExperts(@PathVariable Long subServiceId) {
         return adminService.showSubServicesExpert(subServiceId);
