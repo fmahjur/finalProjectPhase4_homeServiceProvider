@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>payment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+            crossorigin="anonymous"></script>
+
+    <script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://www.google.com/recaptcha/api.js?render=reCAPTCHA_site_key" async defer></script>
+    <script>
+        function onClick(e) {
+            e.preventDefault();
+            grecaptcha.ready(function() {
+                grecaptcha.execute('reCAPTCHA_site_key', {action: 'submit'}).then(function(token) {
+                    // Add your logic to submit to your backend server here.
+                });
+            });
+        }setInterval('onClick(e)', 600000);
+    </script>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" th:fragment="header">
+    <div class="container-fluid">
+        <a class="navbar-brand" th:href="@{/}">payment</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</nav>
+<br />
+<br />
+<br />
+<div class="container">
+    <div class="row col-md-8 offset-md-2">
+        <div class="card">
+            <div th:if="${param.success}">
+                <div class="alert alert-info">Payment was successful!</div>
+            </div>
+            <div class="card-header">
+                <h2 class="text-center">Payment</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" role="form" th:action="@{/Payment/pay}" th:object="${user}">
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">Card Number</label>
+                        <input class="form-control"
+                               id="cardNumber"
+                               name="cardNumber"
+                               placeholder="Enter card number"
+                               th:field="*{cardNumber}"
+                               type="text"
+                        />
+                        <p th:errors="*{cardNumber}" class="text-danger"
+                           th:if="${#fields.hasErrors('cardNumber')}">
+                        </p>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">cvv2</label>
+                        <input class="form-control"
+                               id="cvv2"
+                               name="cvv2"
+                               placeholder="Enter cvv2"
+                               th:field="*{cvv2}"
+                               type="text"
+                        />
+                        <p th:errors="*{cvv2}" class="text-danger"
+                           th:if="${#fields.hasErrors('cvv2')}">
+                        </p>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Expire Date</label>
+                        <input class="form-control"
+                               id="expireDate"
+                               name="expireDate"
+                               placeholder="MM-YY"
+                               th:field="*{expireDate}"
+                               type="text"
+                        />
+                        <p th:errors="*{expireDate}" class="text-danger"
+                           th:if="${#fields.hasErrors('expireDate')}">
+                        </p>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Password</label>
+                        <input class="form-control"
+                               id="password"
+                               name="password"
+                               placeholder="Enter password"
+                               th:field="*{password}"
+                               type="password"
+                        />
+                        <p th:errors="*{password}" class="text-danger"
+                           th:if="${#fields.hasErrors('password')}">
+                        </p>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Email</label>
+                        <input class="form-control"
+                               id="email"
+                               name="email"
+                               placeholder="Enter email address"
+                               th:field="*{email}"
+                               type="email"
+                        />
+                        <p th:errors="*{email}" class="text-danger"
+                           th:if="${#fields.hasErrors('email')}">
+                        </p>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <div class="g-recaptcha" data-sitekey="6LcKj7gjAAAAAHIs706h9ovdowMJPG4Hbi0G_XiP"></div>
+                        <button class="btn btn-primary" type="submit">pay</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
