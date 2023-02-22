@@ -1,5 +1,8 @@
 package ir.maktab.finalprojectphase4.data.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import ir.maktab.finalprojectphase4.data.enums.OrderStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -22,10 +25,15 @@ public class FilterOrderDTO {
     Long minProposedPrice;
     Long proposedPrice;
     Long maxProposedPrice;
+
     String minCreationDate;
+
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S]")
     LocalDateTime CreationDate;
+
     String maxCreationDate;
-    int minDurationOfWork;
-    int durationOfWork;
-    int masDurationOfWork;
+    Integer minDurationOfWork;
+    Integer durationOfWork;
+    Integer maxDurationOfWork;
 }
