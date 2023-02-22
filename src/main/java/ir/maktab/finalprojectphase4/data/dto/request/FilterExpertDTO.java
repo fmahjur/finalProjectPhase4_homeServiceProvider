@@ -7,6 +7,8 @@ import ir.maktab.finalprojectphase4.data.enums.ExpertStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,15 +22,16 @@ public class FilterExpertDTO {
     Boolean isActive;
     ExpertStatus expertStatus;
     Integer minRate;
+    Integer rate;
     Integer maxRate;
     Long minCredit;
+    Long credit;
     Long maxCredit;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S]")
-    String minCreationDate;
+    LocalDateTime creationDate;
 
-    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S]")
+    String minCreationDate;
     String maxCreationDate;
 }
