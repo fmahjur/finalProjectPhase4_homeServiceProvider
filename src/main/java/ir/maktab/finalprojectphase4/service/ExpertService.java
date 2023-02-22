@@ -41,7 +41,7 @@ public interface ExpertService {
 
     void login(LoginDTO loginDTO);
 
-    Expert changePassword(ChangePasswordDTO changePasswordDTO);
+    void changePassword(ChangePasswordDTO changePasswordDTO);
 
     List<ExpertResponseDTO> selectExpertByExpertStatus(ExpertStatus expertStatus);
 
@@ -67,7 +67,7 @@ public interface ExpertService {
 
     List<OrderResponseDTO> showOrderHistory(Long expertId, boolean isAccept);
 
-    List<OrderResponseDTO> showOrderHistory(Long expertId, boolean isAccept, OrderStatus orderStatus);
+    List<OrderResponseDTO> showOrderHistoryByOrderStatus(Long expertId, boolean isAccept, OrderStatus orderStatus);
 
-    Long viewCredit(Long expertId);
+    Long showCredit(Long expertId);
 }

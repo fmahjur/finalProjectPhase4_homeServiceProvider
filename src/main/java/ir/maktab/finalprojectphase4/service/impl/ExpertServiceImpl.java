@@ -16,7 +16,6 @@ import ir.maktab.finalprojectphase4.data.repository.ExpertRepository;
 import ir.maktab.finalprojectphase4.exception.*;
 import ir.maktab.finalprojectphase4.service.EmailSenderService;
 import ir.maktab.finalprojectphase4.service.ExpertService;
-import ir.maktab.finalprojectphase4.validation.PasswordValidator;
 import ir.maktab.finalprojectphase4.validation.PictureValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -66,10 +65,10 @@ public class ExpertServiceImpl implements ExpertService {
 
 
         Token token = new Token(expert);
-        token.setConfirmationToken(UUID.randomUUID().toString());
+        token.setToken(UUID.randomUUID().toString());
         tokenService.add(token);
 
-        SimpleMailMessage mailMessage = emailSenderService.createEmail(expert.getEmail(), token.getConfirmationToken(), "expert");
+        SimpleMailMessage mailMessage = emailSenderService.createEmail(expert.getEmail(), token.getToken(), "expert");
         emailSenderService.sendEmail(mailMessage);
 
         expertRepository.save(expert);
@@ -92,7 +91,7 @@ public class ExpertServiceImpl implements ExpertService {
 
     @Override
     public void remove(Long expertId) {
-        if(!expertRepository.existsById(expertId))
+        if (!expertRepository.existsById(expertId))
             throw new NotFoundException("This expert does not exist!");
         expertRepository.updateIsDeletedFlag(expertId);
     }
@@ -125,7 +124,7 @@ public class ExpertServiceImpl implements ExpertService {
     @Override
     public void addSubServiceToExpert(ExpertSubServiceDTO expertSubServiceDTO) {
         Expert expert = findById(expertSubServiceDTO.getExpertId());
-        if(!expert.getExpertStatus().equals(ExpertStatus.ACCEPTED))
+        if (!expert.getExpertStatus().equals(ExpertStatus.ACCEPTED))
             throw new ExpertStatusException("This expert does not accepted!");
         SubService subService = subServiceService.findById(expertSubServiceDTO.getSubServiceId());
         expert.addSubService(subService);
@@ -136,7 +135,7 @@ public class ExpertServiceImpl implements ExpertService {
     public void removeSubServiceFromExpert(ExpertSubServiceDTO expertSubServiceDTO) {
         Expert expert = findById(expertSubServiceDTO.getExpertId());
         SubService subService = subServiceService.findById(expertSubServiceDTO.getSubServiceId());
-        if(!expert.getSubServices().contains(subService))
+        if (!expert.getSubServices().contains(subService))
             throw new ExpertSubServiceException("this Expert does not have this subService!");
         expert.deleteSubService(subService);
         expertRepository.save(expert);
@@ -180,13 +179,14 @@ public class ExpertServiceImpl implements ExpertService {
     }
 
     @Override
-    public Expert changePassword(ChangePasswordDTO changePasswordDTO) {
-        PasswordValidator.isValidNewPassword(changePasswordDTO.getPassword(),
-                changePasswordDTO.getNewPassword(),
-                changePasswordDTO.getConfirmNewPassword());
+    public void changePassword(ChangePasswordDTO changePasswordDTO) {
+        if (changePasswordDTO.getPassword().equals(changePasswordDTO.getNewPassword()))
+            throw new ChangePasswordException("oldPassword and newPassword can not be same!");
+        else if (!changePasswordDTO.getNewPassword().equals(changePasswordDTO.getConfirmNewPassword()))
+            throw new ChangePasswordException("newPassword and confirmNewPassword must be same!");
         Expert expert = findByUsername(changePasswordDTO.getUsername());
         expert.setPassword(changePasswordDTO.getPassword());
-        return expertRepository.save(expert);
+        expertRepository.save(expert);
     }
 
     @Override
@@ -326,7 +326,6 @@ public class ExpertServiceImpl implements ExpertService {
 
     @Override
     public List<Offer> showOfferHistory(Long expertId, boolean isAccept) {
-        Expert expert = findById(expertId);
         return offerService.selectOfferByExpertIdAndIsAccept(expertId, isAccept);
     }
 
@@ -340,7 +339,7 @@ public class ExpertServiceImpl implements ExpertService {
     }
 
     @Override
-    public List<OrderResponseDTO> showOrderHistory(Long expertId, boolean isAccept, OrderStatus orderStatus) {
+    public List<OrderResponseDTO> showOrderHistoryByOrderStatus(Long expertId, boolean isAccept, OrderStatus orderStatus) {
         List<OrderResponseDTO> orders = new ArrayList<>();
         List<Offer> expertOffers = showOfferHistory(expertId, isAccept);
         expertOffers.stream()
@@ -352,7 +351,7 @@ public class ExpertServiceImpl implements ExpertService {
     }
 
     @Override
-    public Long viewCredit(Long expertId) {
+    public Long showCredit(Long expertId) {
         Expert expert = findById(expertId);
         return expert.getCredit();
     }
