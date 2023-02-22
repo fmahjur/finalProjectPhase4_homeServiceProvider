@@ -4,6 +4,8 @@ import ir.maktab.finalprojectphase4.data.enums.ExpertStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,4 +20,6 @@ public class FilterExpertResponseDTO {
     ExpertStatus expertStatus;
     Double rate;
     Long credit;
+
+    LocalDateTime creationDate;
 }
