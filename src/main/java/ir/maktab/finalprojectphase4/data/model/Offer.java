@@ -21,12 +21,12 @@ public class Offer extends BaseEntity {
     Expert expert;
 
     @ManyToOne
-    Orders orders;
+    Orders order;
 
     @CreationTimestamp
     LocalDateTime offerDate;
 
-    Double offerPrice;
+    Long offerPrice;
 
     LocalDateTime proposedStartDate;
 
@@ -44,14 +44,26 @@ public class Offer extends BaseEntity {
         this.isDeleted = false;
     }
 
-    public Offer(Long id, Expert expert, Orders orders, Double offerPrice, LocalDateTime proposedStartDate, int durationOfWork, LocalDateTime proposedEndDate) {
+    public Offer(Long id, Expert expert, Orders order, Long offerPrice, LocalDateTime proposedStartDate, int durationOfWork, LocalDateTime proposedEndDate) {
         super(id);
         this.expert = expert;
-        this.orders = orders;
+        this.order = order;
         this.offerPrice = offerPrice;
         this.proposedStartDate = proposedStartDate;
         this.offerStatus = OfferStatus.WAITING;
         this.durationOfWork = durationOfWork;
         this.proposedEndDate = proposedEndDate;
+    }
+
+    public Offer(Expert expert, Orders order, LocalDateTime offerDate, Long offerPrice, LocalDateTime proposedStartDate, int durationOfWork, LocalDateTime proposedEndDate, OfferStatus offerStatus) {
+        this.expert = expert;
+        this.order = order;
+        this.offerDate = offerDate;
+        this.offerPrice = offerPrice;
+        this.proposedStartDate = proposedStartDate;
+        this.durationOfWork = durationOfWork;
+        this.proposedEndDate = proposedEndDate;
+        this.offerStatus = offerStatus;
+        this.isDeleted = false;
     }
 }

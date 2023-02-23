@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,6 +23,7 @@ public class EmailSenderServiceImpl implements EmailSenderService {
     }
 
     @Override
+    @Async
     public void sendEmail(String to, String emailMessage) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
@@ -29,7 +31,7 @@ public class EmailSenderServiceImpl implements EmailSenderService {
             helper.setText(emailMessage, true);
             helper.setTo(to);
             helper.setSubject("Confirm your email");
-            helper.setFrom("reihaneh763@gmail.com");
+            helper.setFrom("reihaneh.mahjour@gmail.com");
             javaMailSender.send(mimeMessage);
         } catch (MessagingException e) {
             throw new SendEmailFailedException("Failed to send email for: " + emailMessage);
@@ -40,15 +42,15 @@ public class EmailSenderServiceImpl implements EmailSenderService {
     public SimpleMailMessage createEmail(String toEmail, String confirmationToken, String accountType) {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setTo(toEmail);
-        mailMessage.setFrom("reihaneh763@gmail.com");
+        mailMessage.setFrom("reihaneh.mahjour@gmail.com");
         if (accountType.equals("customer")) {
             mailMessage.setSubject("Complete Customer Registration!");
             mailMessage.setText("To confirm your account, please click here : "
-                    + "http://localhost:8080/signup/confirm-customer/" + confirmationToken);
+                    + "http://localhost:8080/registration/customer/confirm?token=" + confirmationToken);
         } else if (accountType.equals("expert")) {
             mailMessage.setSubject("Complete Expert Registration!");
             mailMessage.setText("To confirm your account, please click here : "
-                    + "http://localhost:8080/signup/confirm-expert/" + confirmationToken);
+                    + "http://localhost:8080/registration/expert/confirm?token=" + confirmationToken);
         }
         return mailMessage;
     }

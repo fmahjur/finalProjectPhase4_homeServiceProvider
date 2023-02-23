@@ -11,6 +11,7 @@ import ir.maktab.finalprojectphase4.data.model.*;
 import ir.maktab.finalprojectphase4.data.repository.CustomerRepository;
 import ir.maktab.finalprojectphase4.exception.*;
 import ir.maktab.finalprojectphase4.service.CustomerService;
+import ir.maktab.finalprojectphase4.service.EmailSenderService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -18,21 +19,24 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.chrono.ChronoLocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
+    private final ConfirmationTokenServiceImpl tokenService;
+    private final EmailSenderService emailSenderService;
     private final OrderServiceImpl orderService;
     private final OfferServiceImpl offerService;
     private final ExpertServiceImpl expertService;
@@ -42,13 +46,26 @@ public class CustomerServiceImpl implements CustomerService {
     private EntityManager entityManager;
 
     @Override
-    public void add(UserRegistrationDTO customerRegistrationDTO) {
-        if (customerRepository.existsByEmailAndRole(customerRegistrationDTO.getEmail(), Role.ROLE_CUSTOMER))
+    public String signUp(Customer customer) {
+        if (customerRepository.existsByEmailAndRole(customer.getEmail(), Role.ROLE_CUSTOMER))
             throw new DuplicateEmailException("This Email is already Exist!");
-        if (customerRepository.existsByUsernameAndRole(customerRegistrationDTO.getUsername(), Role.ROLE_CUSTOMER))
+        if (customerRepository.existsByUsernameAndRole(customer.getUsername(), Role.ROLE_CUSTOMER))
             throw new DuplicateEmailException("This username is already Exist!");
-        Customer customer = CustomerMapper.INSTANCE.registerDtoToModel(customerRegistrationDTO);
+
+        customer.setPassword(passwordEncoder.encode(customer.getPassword()));
+        customer.setRole(Role.ROLE_CUSTOMER);
         customerRepository.save(customer);
+
+        String token = UUID.randomUUID().toString();
+        ConfirmationToken confirmationToken = new ConfirmationToken(
+                token, customer, LocalDateTime.now(),LocalDateTime.now().plusMinutes(15));
+        confirmationToken.setToken(UUID.randomUUID().toString());
+        tokenService.add(confirmationToken);
+
+        SimpleMailMessage mailMessage = emailSenderService.createEmail(customer.getEmail(), confirmationToken.getToken(), "customer");
+        emailSenderService.sendEmail(mailMessage);
+
+        return token;
     }
 
     @Override
@@ -91,22 +108,14 @@ public class CustomerServiceImpl implements CustomerService {
             customerResponseDTOList.add(CustomerMapper.INSTANCE.modelToResponseDto(customer));
         return customerResponseDTOList;
     }
-
-    @Override
-    public void login(LoginDTO customerLogin) {
-        Customer customer = findByUsername(customerLogin.getUsername());
-        if (!Objects.equals(customer.getPassword(), customerLogin.getPassword()))
-            throw new IncorrectInformationException("Username or Password is Incorrect!");
-    }
-
     @Override
     public Customer changePassword(ChangePasswordDTO changePasswordDTO) {
         if (changePasswordDTO.getPassword().equals(changePasswordDTO.getNewPassword()))
             throw new ChangePasswordException("oldPassword and newPassword can not be same!");
-        else if (!changePasswordDTO.getNewPassword().equals(changePasswordDTO.getConfirmNewPassword()))
+        if (!changePasswordDTO.getNewPassword().equals(changePasswordDTO.getConfirmNewPassword()))
             throw new ChangePasswordException("newPassword and confirmNewPassword must be same!");
         Customer customer = findByUsername(changePasswordDTO.getUsername());
-        customer.setPassword(changePasswordDTO.getNewPassword());
+        customer.setPassword(passwordEncoder.encode(changePasswordDTO.getNewPassword()));
         return customerRepository.save(customer);
     }
 
@@ -114,9 +123,13 @@ public class CustomerServiceImpl implements CustomerService {
     public void addNewOrder(Long customerId, SubmitOrderDTO submitOrderDTO) {
         Customer customer = findById(customerId);
         SubService subService = subServiceService.findById(submitOrderDTO.getSubServiceId());
-        Orders order = OrderMapper.INSTANCE.submitDtoToModel(submitOrderDTO);
-        order.setCustomer(customer);
-        order.setSubService(subService);
+        Orders order = new Orders(customer,
+                subService,
+                submitOrderDTO.getDescription(),
+                submitOrderDTO.getCustomerProposedPrice(),
+                submitOrderDTO.getWorkStartDate(),
+                submitOrderDTO.getDurationOfWork(),
+                submitOrderDTO.getAddress());
         order.setOrderStatus(OrderStatus.WAITING_FOR_EXPERTS_OFFER);
         orderService.add(order);
     }
@@ -159,7 +172,7 @@ public class CustomerServiceImpl implements CustomerService {
     public void changeOrderStatusToStarted(Long orderId) {
         Orders order = orderService.findById(orderId);
         if (order.getWorkStartDate().isBefore(ChronoLocalDateTime.from(LocalDate.now())))
-            throw new ValidationException("work can not start before now!");
+            throw new WorkStartDateException("work can not start before now!");
         order.setOrderStatus(OrderStatus.STARTED);
         orderService.update(order);
     }
@@ -183,7 +196,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public List<OrderResponseDTO> showAllCustomerOrders(Long customerId) {
         Customer customer = findById(customerId);
-        if(customer.getOrders() == null)
+        if (customer.getOrders() == null)
             throw new NotFoundException("You have not placed an order yet!");
         return orderService.selectAllCustomersOrders(customer);
     }
@@ -191,7 +204,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public List<OrderResponseDTO> showAllCustomerOrdersByOrderStatus(Long customerId, OrderStatus orderStatus) {
         Customer customer = findById(customerId);
-        if(customer.getOrders() == null)
+        if (customer.getOrders() == null)
             throw new NotFoundException("You have not placed an order yet!");
         return orderService.selectAllCustomersOrdersByOrderStatus(customer, orderStatus);
     }
@@ -227,17 +240,18 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public void payByCredit(Long orderId, Long customerId, Long expertId, Long amount) {
-        Orders order = orderService.findById(orderId);
+    public void payByCredit(Long customerId, PayByCreditDTO payByCreditDTO) {
+        Orders order = orderService.findById(payByCreditDTO.getOrderId());
         if (!order.getOrderStatus().equals(OrderStatus.DONE))
             throw new OrderStatusException("the status of this order is not yet \"DONE\"!");
         Customer customer = findById(customerId);
-        if (customer.getCredit() < amount)
+        if (customer.getCredit() < payByCreditDTO.getAmount())
             throw new InsufficientFoundsException("Insufficient founds!");
-        Expert expert = expertService.findById(expertId);
-        orderService.changeOrderStatus(orderId, OrderStatus.PAID);
-        updateCredit(customerId, customer.getCredit() - amount);
-        expertService.updateCredit(expertId, expert.getCredit() + (long) (amount * 0.7));
+        Expert expert = expertService.findById(payByCreditDTO.getExpertId());
+        orderService.changeOrderStatus(payByCreditDTO.getOrderId(), OrderStatus.PAID);
+        updateCredit(customerId, customer.getCredit() - payByCreditDTO.getAmount());
+        expertService.updateCredit(payByCreditDTO.getExpertId(),
+                expert.getCredit() + (long) (payByCreditDTO.getAmount() * 0.7));
     }
 
     @Override
@@ -274,8 +288,8 @@ public class CustomerServiceImpl implements CustomerService {
             String username = "%" + customerDTO.getUsername() + "%";
             predicateList.add(criteriaBuilder.like(customerRoot.get("username"), username));
         }
-        if (customerDTO.getIsActive() != null) {
-            predicateList.add(criteriaBuilder.equal(customerRoot.get("isActive"), customerDTO.getIsActive()));
+        if (customerDTO.getEnabled() != null) {
+            predicateList.add(criteriaBuilder.equal(customerRoot.get("enabled"), customerDTO.getEnabled()));
         }
 
         if (customerDTO.getMinCredit() == null && customerDTO.getMaxCredit() != null) {
@@ -292,9 +306,9 @@ public class CustomerServiceImpl implements CustomerService {
         if (customerDTO.getMinCreationDate() != null && customerDTO.getMaxCreationDate() != null) {
             predicateList
                     .add(criteriaBuilder
-                            .between(customerRoot.get("creationDate"),
-                                    LocalDateTime.parse(customerDTO.getMinCreationDate()),
-                                    LocalDateTime.parse(customerDTO.getMaxCreationDate())));
+                            .between(customerRoot.get("registeryDate"),
+                                    customerDTO.getMinCreationDate(),
+                                    customerDTO.getMaxCreationDate()));
         }
     }
 
@@ -302,5 +316,26 @@ public class CustomerServiceImpl implements CustomerService {
     public Long viewCredit(Long customerId) {
         Customer customer = findById(customerId);
         return customer.getCredit();
+    }
+
+    @Override
+    public int viewNumberOfRegisteredOrders(Long customerId) {
+        if (!customerRepository.existsById(customerId))
+            throw new NotFoundException("This customer was not found!");
+        int count = orderService.numberOfSubmitOrders(customerId);
+        if (count == 0)
+            throw new CustomerDoesNotHaveRegisteredOrder("This customer does not have a registered order!");
+        return count;
+    }
+
+
+    @Override
+    public int viewNumberOfRegisteredOrdersByOrderStatus(CustomerOrdersStatusDTO customerOrdersStatusDTO) {
+        if (!customerRepository.existsById(customerOrdersStatusDTO.getCustomerId()))
+            throw new NotFoundException("This customer was not found!");
+        int count = orderService.numberOfSubmitOrdersByOrderStatus(customerOrdersStatusDTO.getCustomerId(), customerOrdersStatusDTO.getOrderStatus());
+        if (count == 0)
+            throw new CustomerDoesNotHaveRegisteredOrder("This customer does not have a registered order!");
+        return count;
     }
 }

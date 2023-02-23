@@ -6,12 +6,12 @@ import ir.maktab.finalprojectphase4.data.dto.response.OfferResponseDTO;
 import ir.maktab.finalprojectphase4.data.dto.response.OrderResponseDTO;
 import ir.maktab.finalprojectphase4.data.dto.response.SubServiceResponseDTO;
 import ir.maktab.finalprojectphase4.data.model.Customer;
-import ir.maktab.finalprojectphase4.data.model.Expert;
 import ir.maktab.finalprojectphase4.service.CaptchaService;
 import ir.maktab.finalprojectphase4.service.impl.CustomerServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -24,18 +24,6 @@ import java.util.List;
 public class CustomerController {
     private final CustomerServiceImpl customerService;
     private CaptchaService captchaService;
-
-    @PostMapping("/signup")
-    @ResponseBody
-    public void singUp(@Valid @RequestBody UserRegistrationDTO customerRegistrationDTO) {
-        customerService.add(customerRegistrationDTO);
-    }
-
-    @PostMapping("/login")
-    @ResponseBody
-    public void login(@Valid @RequestBody LoginDTO customerLoginDto) {
-        customerService.login(customerLoginDto);
-    }
 
     @PutMapping("/change-password")
     @ResponseBody

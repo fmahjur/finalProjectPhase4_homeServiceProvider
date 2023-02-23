@@ -3,17 +3,19 @@ package ir.maktab.finalprojectphase4.service.impl;
 import ir.maktab.finalprojectphase4.data.dto.request.OfferRequestDTO;
 import ir.maktab.finalprojectphase4.data.dto.response.OfferResponseDTO;
 import ir.maktab.finalprojectphase4.data.enums.OfferStatus;
+import ir.maktab.finalprojectphase4.data.enums.OrderStatus;
 import ir.maktab.finalprojectphase4.data.mapper.OfferMapper;
 import ir.maktab.finalprojectphase4.data.model.Expert;
 import ir.maktab.finalprojectphase4.data.model.Offer;
 import ir.maktab.finalprojectphase4.data.model.Orders;
 import ir.maktab.finalprojectphase4.data.repository.OfferRepository;
-import ir.maktab.finalprojectphase4.exception.NotFoundException;
+import ir.maktab.finalprojectphase4.exception.*;
 import ir.maktab.finalprojectphase4.service.OfferService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -92,7 +94,17 @@ public class OfferServiceImpl implements OfferService {
     }
 
     @Override
-    public List<Offer> selectOfferByExpertIdAndIsAccept(Long expertId, boolean isAccept) {
-        return offerRepository.findOfferByExpertIdAndIsAccept(expertId, isAccept);
+    public List<Offer> selectOfferByExpertIdAndIsAccept(Expert expert) {
+        return offerRepository.findOffersByExpertAndOfferStatus(expert, OfferStatus.ACCEPTED);
+    }
+
+    @Override
+    public int numberOfSubmitOffers(Long expertId) {
+        return offerRepository.numberOfSubmitOffers(expertId);
+    }
+
+    @Override
+    public int numberOfSubmitOffersByOfferStatus(Long expertId, OfferStatus offerStatus) {
+        return offerRepository.numberOfSubmitOffersByOfferStatus(expertId, offerStatus);
     }
 }

@@ -9,6 +9,7 @@ import ir.maktab.finalprojectphase4.service.impl.ExpertServiceImpl;
 import ir.maktab.finalprojectphase4.validation.PictureValidator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,36 +20,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/Expert")
+//@PreAuthorize("hasRole('EXPERT')")
 @RequiredArgsConstructor
 public class ExpertController {
     private final ExpertServiceImpl expertService;
-
-    @PostMapping("/signup")
-    @ResponseBody
-    public void singUp(@Valid @RequestParam String firstname,
-                       @RequestParam String lastname,
-                       @RequestParam String email,
-                       @RequestParam String username,
-                       @RequestParam String password,
-                       @RequestParam Long credit,
-                       @RequestParam("imageFile") MultipartFile file) {
-
-        UserRegistrationDTO expertRegistrationDTO = new UserRegistrationDTO(firstname, lastname, email, username, password, credit);
-        PictureValidator.isValidImageFile(file.getOriginalFilename());
-        byte[] expertPicture = new byte[0];
-        try {
-            expertPicture = file.getBytes();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        expertService.add(expertRegistrationDTO, expertPicture);
-    }
-
-    @PostMapping("/login")
-    @ResponseBody
-    public void login(@Valid @RequestBody LoginDTO expertLoginDto) {
-        expertService.login(expertLoginDto);
-    }
 
     @PutMapping("/change-password")
     @ResponseBody
@@ -99,7 +74,7 @@ public class ExpertController {
     }
 
     @GetMapping("/show-offer-history")
-    public List<OfferResponseDTO> viewOfferHistory( Authentication authentication) {
+    public List<OfferResponseDTO> viewOfferHistory(Authentication authentication) {
         Expert authenticatedExpert = (Expert) authentication.getPrincipal();
         List<OfferResponseDTO> offerDTOS = new ArrayList<>();
         expertService.showOfferHistory(authenticatedExpert.getId())

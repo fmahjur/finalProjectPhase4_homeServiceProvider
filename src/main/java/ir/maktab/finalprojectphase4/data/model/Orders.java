@@ -19,21 +19,20 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 public class Orders extends BaseEntity {
-    String orderNumber;
     @ManyToOne(cascade = CascadeType.MERGE)
     Customer customer;
 
-    @ManyToOne(cascade = CascadeType.MERGE)
+    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     SubService subService;
 
-    @OneToMany(mappedBy = "orders")
+    @OneToMany(mappedBy = "order")
     List<Offer> offers = new ArrayList<>();
 
     @Column(nullable = false)
     String description;
 
     @Column(nullable = false)
-    Double CustomerProposedPrice;
+    Long CustomerProposedPrice;
 
     @Enumerated(EnumType.STRING)
     OrderStatus orderStatus;
@@ -59,9 +58,8 @@ public class Orders extends BaseEntity {
         this.isDeleted = false;
     }
 
-    public Orders(Long id, String orderNumber, Customer customer, SubService subService, String description, Double customerProposedPrice, LocalDateTime workStartDate, int durationOfWork, String address) {
+    public Orders(Long id, Customer customer, SubService subService, String description, Long customerProposedPrice, LocalDateTime workStartDate, int durationOfWork, String address) {
         super(id);
-        this.orderNumber = orderNumber;
         this.customer = customer;
         this.subService = subService;
         this.description = description;
@@ -73,8 +71,7 @@ public class Orders extends BaseEntity {
         this.isDeleted = false;
     }
 
-    public Orders(String orderNumber, Customer customer, SubService subService, String description, Double customerProposedPrice, LocalDateTime workStartDate, int durationOfWork, String address) {
-        this.orderNumber = orderNumber;
+    public Orders(Customer customer, SubService subService, String description, Long customerProposedPrice, LocalDateTime workStartDate, int durationOfWork, String address) {
         this.customer = customer;
         this.subService = subService;
         this.description = description;

@@ -1,6 +1,8 @@
 package ir.maktab.finalprojectphase4.config;
 
-import ir.maktab.finalprojectphase4.service.AccountService;
+import ir.maktab.finalprojectphase4.data.repository.AccountRepository;
+import ir.maktab.finalprojectphase4.service.impl.AccountService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,24 +17,20 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@RequiredArgsConstructor
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final AccountService accountService;
+    private final AccountRepository accountRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-
-    public SecurityConfig(AccountService accountService, BCryptPasswordEncoder passwordEncoder) {
-        this.accountService = accountService;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf().disable()
                 .authorizeHttpRequests()
-                .requestMatchers("/signup/**").permitAll()
+                .requestMatchers("/registration/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/expert/**").hasRole("EXPERT")
                 .requestMatchers("/customer/**").hasRole("CUSTOMER")
@@ -46,6 +44,14 @@ public class SecurityConfig {
                 .invalidateHttpSession(true)
                 .permitAll();
         return http.build();
+
+
+       /* http
+                .csrf().disable()
+                .authorizeHttpRequests()
+                .requestMatchers("/registration/**").permitAll()
+                .anyRequest().authenticated().and().httpBasic();
+        return http.build();*/
     }
 
     @Bean
@@ -55,12 +61,9 @@ public class SecurityConfig {
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(
-                        username -> accountService
-                                .findByUsername(username)
-                                .orElseThrow(
-                                        () -> new UsernameNotFoundException(
-                                                String.format("there is no user with this %s!", username))))
+        auth.userDetailsService((username) -> accountRepository
+                        .findByUsername(username)
+                        .orElseThrow(() -> new UsernameNotFoundException(String.format("This %s notFound!", username))))
                 .passwordEncoder(passwordEncoder);
     }
 }

@@ -11,7 +11,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Orders, Long> {
@@ -30,5 +29,11 @@ public interface OrderRepository extends JpaRepository<Orders, Long> {
 
     @Query("select o from Orders o where o.isDeleted= :isDeleted")
     List<Orders> findAllByDeletedIs(boolean isDeleted);
+
+    @Query("select count(o.customer.id) from Orders o where o.customer.id= :customerId")
+    int numberOfSubmitOrders(Long customerId);
+
+    @Query("select count(o.customer.id) from Orders o where o.customer.id= :customerId and o.orderStatus= :orderStatus")
+    int numberOfSubmitOrdersByOrderStatus(Long customerId, OrderStatus orderStatus);
 
 }

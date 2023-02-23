@@ -1,27 +1,28 @@
 package ir.maktab.finalprojectphase4.service.impl;
 
+import ir.maktab.finalprojectphase4.data.dto.request.FilterOrderDTO;
 import ir.maktab.finalprojectphase4.data.dto.request.OfferRequestDTO;
+import ir.maktab.finalprojectphase4.data.dto.response.FilterOrderResponseDTO;
 import ir.maktab.finalprojectphase4.data.dto.response.OrderResponseDTO;
+import ir.maktab.finalprojectphase4.data.enums.OfferStatus;
 import ir.maktab.finalprojectphase4.data.enums.OrderStatus;
-import ir.maktab.finalprojectphase4.data.mapper.OfferMapper;
 import ir.maktab.finalprojectphase4.data.mapper.OrderMapper;
-import ir.maktab.finalprojectphase4.data.model.Customer;
-import ir.maktab.finalprojectphase4.data.model.Offer;
-import ir.maktab.finalprojectphase4.data.model.Orders;
-import ir.maktab.finalprojectphase4.data.model.SubService;
+import ir.maktab.finalprojectphase4.data.model.*;
 import ir.maktab.finalprojectphase4.data.repository.OrderRepository;
-import ir.maktab.finalprojectphase4.exception.NotFoundException;
-import ir.maktab.finalprojectphase4.exception.ValidationException;
+import ir.maktab.finalprojectphase4.exception.*;
 import ir.maktab.finalprojectphase4.service.OrderService;
-import ir.maktab.finalprojectphase4.validation.OfferValidator;
-import ir.maktab.finalprojectphase4.validation.OrderValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.chrono.ChronoLocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,10 +39,10 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void add(Orders orders) {
-        if (orders.getWorkStartDate().isBefore(ChronoLocalDateTime.from(LocalDate.now())))
-            throw new ValidationException("work can not start before now!");
-        if (!(orders.getCustomerProposedPrice() >= orders.getSubService().getBasePrice()))
-            throw new ValidationException("The proposed price cannot be less than the base price!");
+        if (orders.getWorkStartDate().isBefore(LocalDateTime.now()))
+            throw new WorkStartDateException("work can not start before now!");
+        if ((orders.getCustomerProposedPrice() >= orders.getSubService().getBasePrice()))
+            throw new InvalidProposedPriceException("The proposed price cannot be less than the base price!");
         orderRepository.save(orders);
     }
 
@@ -54,21 +55,17 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void update(Orders orders) {
+        if (orders.getWorkStartDate().isBefore(LocalDateTime.now()))
+            throw new WorkStartDateException("work can not start before now!");
+        if ((orders.getCustomerProposedPrice() >= orders.getSubService().getBasePrice()))
+            throw new InvalidProposedPriceException("The proposed price cannot be less than the base price!");
         orderRepository.save(orders);
     }
 
     @Override
-    public void receivedNewOffer(OfferRequestDTO offerRequestDTO) {
-        Orders orders = findById(offerRequestDTO.getOrderId());
-        Offer offer = OfferMapper.INSTANCE.requestDtoToModel(offerRequestDTO);
-        OrderValidator.checkOrderStatus(orders);
-        OfferValidator.isValidExpertProposedPrice(offerRequestDTO);
-        OfferValidator.hasDurationOfWork(offerRequestDTO);
-        //offer.setOrders(orders);
-        orders.getOffers().add(offer);
-        orders.setOrderStatus(OrderStatus.WAITING_FOR_CHOSE_EXPERT);
-        //offerService.add(offer);
-        orderRepository.save(orders);
+    public void receivedNewOffer(Expert expert, Orders order) {
+        order.setOrderStatus(OrderStatus.WAITING_FOR_CHOSE_EXPERT);
+        orderRepository.save(order);
     }
 
     public Orders findById(Long id) {
@@ -110,7 +107,7 @@ public class OrderServiceImpl implements OrderService {
         List<OrderResponseDTO> orderResponseDTOList = new ArrayList<>();
         for (Orders orders : allOrdersByCustomer)
             orderResponseDTOList.add(OrderMapper.INSTANCE.modelToResponseDto(orders));
-        if(orderResponseDTOList.size()==0)
+        if (orderResponseDTOList.size() == 0)
             throw new NotFoundException("You do not have an order in " + orderStatus + "!");
         return orderResponseDTOList;
     }
@@ -121,7 +118,79 @@ public class OrderServiceImpl implements OrderService {
         return OrderMapper.INSTANCE.modelToResponseDto(order);
     }
 
+    @Override
     public void changeOrderStatus(Long orderId, OrderStatus orderStatus) {
         orderRepository.changeOrderStatus(orderId, orderStatus);
+    }
+
+    @Override
+    public List<FilterOrderResponseDTO> ordersFilter(FilterOrderDTO filterOrderDTO) {
+        List<Predicate> predicateList = new ArrayList<>();
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Orders> orderCriteriaQuery = criteriaBuilder.createQuery(Orders.class);
+        Root<Orders> orderRoot = orderCriteriaQuery.from(Orders.class);
+
+        createFilters(filterOrderDTO, predicateList, criteriaBuilder, orderRoot);
+        Predicate[] predicates = new Predicate[predicateList.size()];
+        predicateList.toArray(predicates);
+        orderCriteriaQuery.select(orderRoot).where(predicates);
+        List<Orders> resultList = entityManager.createQuery(orderCriteriaQuery).getResultList();
+
+        List<FilterOrderResponseDTO> filterOrderResponseDTOS = new ArrayList<>();
+        for (Orders order: resultList)
+            filterOrderResponseDTOS.add(OrderMapper.INSTANCE.modelToFilterResponseDto(order));
+        return filterOrderResponseDTOS;
+    }
+
+    private void createFilters(FilterOrderDTO filterOrderDTO, List<Predicate> predicateList, CriteriaBuilder criteriaBuilder, Root<Orders> orderRoot) {
+        if (filterOrderDTO.getAddress() != null) {
+            String address = "%" + filterOrderDTO.getAddress() + "%";
+            predicateList.add(criteriaBuilder.like(orderRoot.get("address"), address));
+        }
+        if (filterOrderDTO.getDescription() != null) {
+            String description = "%" + filterOrderDTO.getDescription() + "%";
+            predicateList.add(criteriaBuilder.like(orderRoot.get("description"), description));
+        }
+        if (filterOrderDTO.getOrderStatus() != null) {
+            predicateList.add(criteriaBuilder.equal(orderRoot.get("orderStatus"), filterOrderDTO.getOrderStatus()));
+        }
+        if (filterOrderDTO.getSubServiceId() != null) {
+            predicateList.add(criteriaBuilder.equal(orderRoot.get("subServiceId"), filterOrderDTO.getSubServiceId()));
+        }
+
+        if (filterOrderDTO.getMinProposedPrice() == null && filterOrderDTO.getMaxProposedPrice() != null) {
+            predicateList.add(criteriaBuilder.lt(orderRoot.get("proposedPrice"), filterOrderDTO.getMaxProposedPrice()));
+        }
+        if (filterOrderDTO.getMinProposedPrice() != null && filterOrderDTO.getMaxProposedPrice() == null) {
+            predicateList.add(criteriaBuilder.gt(orderRoot.get("proposedPrice"), filterOrderDTO.getMinProposedPrice()));
+        }
+        if (filterOrderDTO.getMinProposedPrice() != null && filterOrderDTO.getMaxProposedPrice() != null) {
+            predicateList.add(criteriaBuilder.between(orderRoot.get("proposedPrice"), filterOrderDTO.getMinProposedPrice(), filterOrderDTO.getMaxProposedPrice()));
+        }
+
+        if (filterOrderDTO.getMinOrderRegistrationDate() != null && filterOrderDTO.getMaxOrderRegistrationDate() != null) {
+            predicateList
+                    .add(criteriaBuilder
+                            .between(orderRoot.get("orderRegistrationDate"),
+                                    filterOrderDTO.getMinOrderRegistrationDate(),
+                                    filterOrderDTO.getMaxOrderRegistrationDate()));
+        }
+        if (filterOrderDTO.getMinDurationOfWork() != null && filterOrderDTO.getMaxDurationOfWork() != null) {
+            predicateList
+                    .add(criteriaBuilder
+                            .between(orderRoot.get("durationOfWork"),
+                                    filterOrderDTO.getMinDurationOfWork(),
+                                    filterOrderDTO.getMaxDurationOfWork()));
+        }
+    }
+
+    @Override
+    public int numberOfSubmitOrders(Long customerId) {
+        return orderRepository.numberOfSubmitOrders(customerId);
+    }
+
+    @Override
+    public int numberOfSubmitOrdersByOrderStatus(Long customerId, OrderStatus orderStatus) {
+        return orderRepository.numberOfSubmitOrdersByOrderStatus(customerId, orderStatus);
     }
 }

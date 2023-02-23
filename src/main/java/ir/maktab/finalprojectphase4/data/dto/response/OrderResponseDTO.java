@@ -10,17 +10,13 @@ import java.util.Date;
 import java.util.List;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderResponseDTO {
-    String orderNumber;
-    Long customerId;
-    Long subServiceId;
     List<Offer> offers = new ArrayList<>();
     String description;
-    Double CustomerProposedPrice;
+    Long CustomerProposedPrice;
     OrderStatus orderStatus;
     Comment comment;
     Date orderRegistrationDate;

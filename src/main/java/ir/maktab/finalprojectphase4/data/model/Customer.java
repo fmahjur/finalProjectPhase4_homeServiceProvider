@@ -23,7 +23,7 @@ public class Customer extends Account {
     private List<Orders> orders = new ArrayList<>();
 
     @Builder
-    public Customer(String firstname, String lastname, String email, String username, String password, Boolean isActive) {
-        super(firstname, lastname, email, username, password, isActive, Role.ROLE_CUSTOMER);
+    public Customer(String firstname, String lastname, String email, String username, String password) {
+        super(firstname, lastname, email, username, password, Role.ROLE_CUSTOMER);
     }
 }

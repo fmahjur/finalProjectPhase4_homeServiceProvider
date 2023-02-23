@@ -8,7 +8,6 @@ import ir.maktab.finalprojectphase4.data.repository.BaseServiceRepository;
 import ir.maktab.finalprojectphase4.exception.DuplicateBaseServiceException;
 import ir.maktab.finalprojectphase4.exception.NotFoundException;
 import ir.maktab.finalprojectphase4.service.BaseServiceService;
-import ir.maktab.finalprojectphase4.validation.BaseServiceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -33,8 +33,8 @@ public interface ExpertRepository extends JpaRepository<Expert, Long> {
     void updateCredit(Long expertId, Long newCredit);
 
     @Modifying
-    @Query("update Expert e set e.isActive = :isActive where e.id = :expertId")
-    void changeActivation(Long expertId, boolean isActive);
+    @Query("update Expert e set e.enabled = :enabled where e.id = :expertId")
+    void changeEnabled(Long expertId, boolean enabled);
 
     @Modifying
     @Query("update Expert set isDeleted=true where id = :expertId")

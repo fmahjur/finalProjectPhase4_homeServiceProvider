@@ -13,9 +13,7 @@ import ir.maktab.finalprojectphase4.data.model.Offer;
 import java.util.List;
 
 public interface ExpertService {
-    void add(UserRegistrationDTO expertRegistrationDTO, byte[] expertPicture);
-
-    void confirmExpertAccount(String confirmationToken);
+    String signUp(Expert expert);
 
     void remove(Long expertId);
 
@@ -39,13 +37,11 @@ public interface ExpertService {
 
     List<ExpertResponseDTO> selectAllAvailableExpert();
 
-    void login(LoginDTO loginDTO);
-
     void changePassword(ChangePasswordDTO changePasswordDTO);
 
     List<ExpertResponseDTO> selectExpertByExpertStatus(ExpertStatus expertStatus);
 
-    void submitAnOffer(OfferRequestDTO offerRequestDTO);
+    void submitAnOffer(Long expertID, OfferRequestDTO offerRequestDTO);
 
     byte[] getImage(Long id);
 
@@ -63,11 +59,15 @@ public interface ExpertService {
 
     List<OfferResponseDTO> showAllExpertOffersRejected(Long expertId);
 
-    List<Offer> showOfferHistory(Long expertId, boolean isAccept);
+    List<Offer> showOfferHistory(Long expertId);
 
-    List<OrderResponseDTO> showOrderHistory(Long expertId, boolean isAccept);
+    List<OrderResponseDTO> showOrderHistory(Long expertId);
 
-    List<OrderResponseDTO> showOrderHistoryByOrderStatus(Long expertId, boolean isAccept, OrderStatus orderStatus);
+    List<OrderResponseDTO> showOrderHistoryByOrderStatus(Long expertId, OrderStatus orderStatus);
 
     Long showCredit(Long expertId);
+
+    int viewNumberOfRegisteredOffers(Long expertId);
+
+    int viewNumberOfRegisteredOffersByOfferStatus(ExpertOffersStatusDTO expertOffersStatusDTO);
 }

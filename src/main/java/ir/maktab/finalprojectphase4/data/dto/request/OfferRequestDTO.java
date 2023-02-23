@@ -9,14 +9,11 @@ import lombok.experimental.FieldDefaults;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OfferRequestDTO {
     Long orderId;
-    Long offerId;
-    Long expertID;
     Long offerPrice;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)

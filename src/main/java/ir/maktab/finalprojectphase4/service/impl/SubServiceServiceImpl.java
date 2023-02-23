@@ -10,14 +10,13 @@ import ir.maktab.finalprojectphase4.data.repository.SubServiceRepository;
 import ir.maktab.finalprojectphase4.exception.DuplicateSubServiceException;
 import ir.maktab.finalprojectphase4.exception.NotFoundException;
 import ir.maktab.finalprojectphase4.service.SubServiceService;
-import ir.maktab.finalprojectphase4.validation.BaseServiceValidator;
-import ir.maktab.finalprojectphase4.validation.SubServiceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +29,7 @@ public class SubServiceServiceImpl implements SubServiceService {
     public void add(SubServiceRequestDTO subServiceRequestDTO) {
         if (!baseServiceService.existById(subServiceRequestDTO.getBaseServiceRequestID()))
             throw new NotFoundException("This service does not exist!");
-        if(subServiceRepository.existsByName(subServiceRequestDTO.getName()))
+        if (subServiceRepository.existsByName(subServiceRequestDTO.getName()))
             throw new DuplicateSubServiceException("This sub service is already exist!");
         SubService subService = SubServiceMapper.INSTANCE.requestDtoToModel(subServiceRequestDTO);
         subService.setBaseService(getBaseServiceObject(subServiceRequestDTO.getBaseServiceRequestID()));
@@ -45,11 +44,15 @@ public class SubServiceServiceImpl implements SubServiceService {
     @Override
     public void update(UpdateSubServiceDTO updateSubServiceDTO) {
         SubService subService = subServiceRepository.findById(updateSubServiceDTO.getSubServiceID())
-                .orElseThrow(()->new NotFoundException("This sub service does not exist!"));
-        subService.setBaseService(getBaseServiceObject(updateSubServiceDTO.getBaseServiceRequestID()));
-        subService.setName(updateSubServiceDTO.getName());
-        subService.setDescription(updateSubServiceDTO.getDescription());
-        subService.setBasePrice(updateSubServiceDTO.getBasePrice());
+                .orElseThrow(() -> new NotFoundException("This sub service does not exist!"));
+        if (!Objects.equals(String.valueOf(updateSubServiceDTO.getBaseServiceRequestID()), ""))
+            subService.setBaseService(getBaseServiceObject(updateSubServiceDTO.getBaseServiceRequestID()));
+        if (!Objects.equals(String.valueOf(updateSubServiceDTO.getName()), ""))
+            subService.setName(updateSubServiceDTO.getName());
+        if (!Objects.equals(String.valueOf(updateSubServiceDTO.getDescription()), ""))
+            subService.setDescription(updateSubServiceDTO.getDescription());
+        if (!Objects.equals(updateSubServiceDTO.getBasePrice(), null))
+            subService.setBasePrice(updateSubServiceDTO.getBasePrice());
         subServiceRepository.save(subService);
     }
 
@@ -67,7 +70,7 @@ public class SubServiceServiceImpl implements SubServiceService {
     public List<SubServiceResponseDTO> selectAll() {
         List<SubService> subServiceList = subServiceRepository.findAll();
         List<SubServiceResponseDTO> subServiceResponseDTOList = new ArrayList<>();
-        for (SubService subService: subServiceList)
+        for (SubService subService : subServiceList)
             subServiceResponseDTOList.add(SubServiceMapper.INSTANCE.modelToResponseDto(subService));
         return subServiceResponseDTOList;
     }
@@ -76,7 +79,7 @@ public class SubServiceServiceImpl implements SubServiceService {
     public List<SubServiceResponseDTO> selectAllAvailableService() {
         List<SubService> subServiceList = subServiceRepository.findAllByDeletedIs(false);
         List<SubServiceResponseDTO> subServiceResponseDTOList = new ArrayList<>();
-        for (SubService subService: subServiceList)
+        for (SubService subService : subServiceList)
             subServiceResponseDTOList.add(SubServiceMapper.INSTANCE.modelToResponseDto(subService));
         return subServiceResponseDTOList;
     }
@@ -86,12 +89,12 @@ public class SubServiceServiceImpl implements SubServiceService {
         BaseService baseService = baseServiceService.findById(baseServiceRequestId);
         List<SubService> subServiceList = subServiceRepository.findAllByBaseService(baseService);
         List<SubServiceResponseDTO> subServiceResponseDTOList = new ArrayList<>();
-        for (SubService subService: subServiceList)
+        for (SubService subService : subServiceList)
             subServiceResponseDTOList.add(SubServiceMapper.INSTANCE.modelToResponseDto(subService));
         return subServiceResponseDTOList;
     }
 
-    private BaseService getBaseServiceObject(Long id){
+    private BaseService getBaseServiceObject(Long id) {
         BaseService baseService = new BaseService();
         baseService.setId(id);
         return baseService;

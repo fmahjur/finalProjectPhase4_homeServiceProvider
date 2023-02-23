@@ -15,7 +15,7 @@ import lombok.experimental.FieldDefaults;
 @Entity
 public class Comment extends BaseEntity {
     String comment;
-    double score;
+    Integer score;
 
     @ManyToOne(cascade = {CascadeType.ALL})
     @JoinColumn(name="expert_id")
@@ -23,7 +23,7 @@ public class Comment extends BaseEntity {
 
     boolean isDeleted;
 
-    public Comment(Long id, String comment, double score, Expert expert) {
+    public Comment(Long id, String comment, int score, Expert expert) {
         super(id);
         this.comment = comment;
         this.score = score;
@@ -31,7 +31,7 @@ public class Comment extends BaseEntity {
         this.isDeleted = false;
     }
 
-    public Comment(Long id, String comment, double score) {
+    public Comment(Long id, String comment, int score) {
         super(id);
         this.comment = comment;
         this.score = score;

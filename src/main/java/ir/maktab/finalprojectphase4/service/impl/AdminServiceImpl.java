@@ -5,10 +5,8 @@ import ir.maktab.finalprojectphase4.data.dto.response.*;
 import ir.maktab.finalprojectphase4.data.enums.ExpertStatus;
 import ir.maktab.finalprojectphase4.data.enums.OrderStatus;
 import ir.maktab.finalprojectphase4.data.mapper.ExpertMapper;
-import ir.maktab.finalprojectphase4.data.model.Expert;
-import ir.maktab.finalprojectphase4.data.model.Offer;
-import ir.maktab.finalprojectphase4.data.model.Orders;
-import ir.maktab.finalprojectphase4.data.model.SubService;
+import ir.maktab.finalprojectphase4.data.model.*;
+import ir.maktab.finalprojectphase4.data.repository.AdminRepository;
 import ir.maktab.finalprojectphase4.exception.ExpertActivationException;
 import ir.maktab.finalprojectphase4.exception.OrderStatusException;
 import ir.maktab.finalprojectphase4.service.AdminService;
@@ -19,11 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
+    private final AdminRepository adminRepository;
     private final BaseServiceServiceImpl baseServiceService;
     private final SubServiceServiceImpl subServiceService;
     private final ExpertServiceImpl expertService;
@@ -51,8 +49,13 @@ public class AdminServiceImpl implements AdminService {
         subServiceService.remove(subServiceId);
     }
 
-    public void editSubService(UpdateSubServiceDTO subService){
+    public void editSubService(UpdateSubServiceDTO subService) {
         subServiceService.update(subService);
+    }
+
+    @Override
+    public void saveAccount(Admin admin) {
+        adminRepository.save(admin);
     }
 
     @Override
@@ -63,7 +66,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public void changeExpertStatus(ChangeExpertStatusDTO changeExpertStatusDTO){
+    public void changeExpertStatus(ChangeExpertStatusDTO changeExpertStatusDTO) {
         Expert expert = expertService.findById(changeExpertStatusDTO.getExpertId());
         expert.setExpertStatus(changeExpertStatusDTO.getExpertStatus());
         expertService.update(expert);
@@ -132,9 +135,9 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public void deActiveExpert(Long expertId) {
         Expert expert = expertService.findById(expertId);
-        if (expert.getRate() > 0 )
+        if (expert.getRate() > 0)
             throw new ExpertActivationException("this expert rate is positive");
-        if(expert.getIsActive().equals(false))
+        if (expert.getEnabled().equals(false))
             throw new ExpertActivationException("this expert account is inactive");
         expertService.changeExpertAccountActivation(expertId, false);
     }
@@ -155,10 +158,10 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<ExpertResponseDTO> showSubServicesExpert(Long subServiceId){
+    public List<ExpertResponseDTO> showSubServicesExpert(Long subServiceId) {
         SubService subService = subServiceService.findById(subServiceId);
         List<ExpertResponseDTO> expertResponseDTOList = new ArrayList<>();
-        for (Expert expert: subService.getExperts())
+        for (Expert expert : subService.getExperts())
             expertResponseDTOList.add(ExpertMapper.INSTANCE.modelToResponseDto(expert));
         return expertResponseDTOList;
     }

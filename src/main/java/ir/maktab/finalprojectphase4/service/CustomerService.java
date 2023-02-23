@@ -8,7 +8,7 @@ import ir.maktab.finalprojectphase4.data.model.Customer;
 import java.util.List;
 
 public interface CustomerService {
-    void add(UserRegistrationDTO customerRegistrationDTO);
+    String signUp(Customer customer);
 
     void remove(UserEmailDTO customerEmailDto);
 
@@ -22,7 +22,6 @@ public interface CustomerService {
 
     List<CustomerResponseDTO> selectAllAvailableCustomer();
 
-    void login(LoginDTO customerLogin);
 
     Customer changePassword(ChangePasswordDTO changePasswordDTO);
 
@@ -56,9 +55,13 @@ public interface CustomerService {
 
     void updateCredit(Long customerId, Long newCredit);
 
-    void payByCredit(Long orderId, Long customerId, Long expertId, Long amount);
+    void payByCredit(Long customerId, PayByCreditDTO payByCreditDTO);
 
     List<FilterCustomerResponseDTO> customersFilter(FilterCustomerDTO customerDTO);
 
     Long viewCredit(Long customerId);
+
+    int viewNumberOfRegisteredOrders(Long customerId);
+
+    int viewNumberOfRegisteredOrdersByOrderStatus(CustomerOrdersStatusDTO customerOrdersStatusDTO);
 }

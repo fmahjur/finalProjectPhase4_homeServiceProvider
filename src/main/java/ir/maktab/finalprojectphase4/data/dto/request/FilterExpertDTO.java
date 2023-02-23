@@ -10,7 +10,6 @@ import lombok.experimental.FieldDefaults;
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -19,7 +18,7 @@ public class FilterExpertDTO {
     String lastname;
     String email;
     String username;
-    Boolean isActive;
+    Boolean enabled;
     ExpertStatus expertStatus;
     Integer minRate;
     Integer rate;
@@ -32,6 +31,11 @@ public class FilterExpertDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S]")
     LocalDateTime creationDate;
 
-    String minCreationDate;
-    String maxCreationDate;
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S]")
+    LocalDateTime minCreationDate;
+
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][.SS][.S]")
+    LocalDateTime maxCreationDate;
 }

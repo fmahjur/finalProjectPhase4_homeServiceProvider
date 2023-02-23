@@ -5,7 +5,6 @@ import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -15,7 +14,6 @@ public class FilterCustomerResponseDTO {
     String lastname;
     String email;
     String username;
-    Boolean isActive;
     Long credit;
     LocalDateTime CreationDate;
 }

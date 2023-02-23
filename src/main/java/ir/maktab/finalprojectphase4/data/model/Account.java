@@ -11,12 +11,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@EqualsAndHashCode
+@ToString
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
@@ -34,40 +37,40 @@ public abstract class Account extends BaseEntity implements UserDetails {
 
     @CreationTimestamp
     LocalDateTime registeryDate;
-    Boolean isActive;
     @Column(nullable = false)
     @Enumerated(value = EnumType.STRING)
     Role role;
 
+    private Boolean locked = false;
+    private Boolean enabled = false;
+
     boolean isDeleted;
 
-    public Account(String firstname, String lastname, String email, String username, String password, Boolean isActive, Role role) {
+    public Account(String firstname, String lastname, String email, String username, String password, Role role) {
         this.firstname = firstname;
         this.lastname = lastname;
         this.email = email;
         this.username = username;
         this.password = password;
-        this.isActive = isActive;
         this.role = role;
         this.isDeleted = false;
     }
 
     @Override
-    public String toString() {
-        return "Account{" +
-                "firstname='" + firstname + '\'' +
-                ", lastname='" + lastname + '\'' +
-                ", email='" + email + '\'' +
-                ", username='" + username + '\'' +
-                ", password='" + password + '\'' +
-                ", isActive=" + isActive +
-                ", role=" + role +
-                '}';
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        SimpleGrantedAuthority authority =
+                new SimpleGrantedAuthority(role.name());
+        return Collections.singletonList(authority);
     }
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.name()));
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
     }
 
     @Override
@@ -77,7 +80,7 @@ public abstract class Account extends BaseEntity implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !locked;
     }
 
     @Override
@@ -87,6 +90,6 @@ public abstract class Account extends BaseEntity implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 }

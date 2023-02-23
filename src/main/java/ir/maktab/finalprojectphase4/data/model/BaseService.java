@@ -15,7 +15,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @ToString
 @Entity
-public class BaseService extends BaseEntity implements Service {
+public class BaseService extends BaseEntity {
     @Column(unique = true)
     String name;
     @ToString.Exclude
@@ -33,6 +33,7 @@ public class BaseService extends BaseEntity implements Service {
         this.name = name;
         this.isDeleted = false;
     }
+
     public BaseService(String name) {
         this.name = name;
         this.isDeleted = false;

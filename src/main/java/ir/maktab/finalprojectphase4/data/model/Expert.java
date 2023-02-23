@@ -43,8 +43,8 @@ public class Expert extends Account {
     }
 
     @Builder
-    public Expert(String firstname, String lastname, String email, String username, String password, Boolean isActive, byte[] personalPhoto) {
-        super(firstname, lastname, email, username, password, isActive, Role.ROLE_EXPERT);
+    public Expert(String firstname, String lastname, String email, String username, String password, byte[] personalPhoto) {
+        super(firstname, lastname, email, username, password, Role.ROLE_EXPERT);
         this.personalPhoto = personalPhoto;
     }
 

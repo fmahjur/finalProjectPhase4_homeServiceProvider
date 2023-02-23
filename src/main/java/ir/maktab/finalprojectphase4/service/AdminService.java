@@ -2,10 +2,12 @@ package ir.maktab.finalprojectphase4.service;
 
 import ir.maktab.finalprojectphase4.data.dto.request.*;
 import ir.maktab.finalprojectphase4.data.dto.response.*;
+import ir.maktab.finalprojectphase4.data.model.Admin;
 
 import java.util.List;
 
 public interface AdminService {
+    void saveAccount(Admin admin);
     void addNewService(BaseServiceRequestDTO baseService);
 
     void removeService(Long baseServiceId);

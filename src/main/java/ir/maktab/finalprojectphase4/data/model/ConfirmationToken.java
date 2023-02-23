@@ -13,24 +13,28 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Token extends BaseEntity {
+public class ConfirmationToken extends BaseEntity {
 
     @Column(nullable = false)
     String token;
 
-    @OneToOne(targetEntity = Expert.class, fetch = FetchType.EAGER)
+    @ManyToOne
     @JoinColumn(nullable = false, name = "account_id")
-    Expert account;
+    Account account;
 
     @CreationTimestamp
-    @Column(name = "creation_date")
+    @Column(nullable = false)
     LocalDateTime createdAt;
 
+    @Column(nullable = false)
     LocalDateTime expireAt;
 
     LocalDateTime confirmAt;
 
-    public Token(Expert account) {
+    public ConfirmationToken(String token, Account account, LocalDateTime createdAt, LocalDateTime expireAt) {
+        this.token = token;
         this.account = account;
+        this.createdAt = createdAt;
+        this.expireAt = expireAt;
     }
 }

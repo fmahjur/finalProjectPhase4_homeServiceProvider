@@ -6,6 +6,7 @@ import ir.maktab.finalprojectphase4.data.dto.response.FilterExpertResponseDTO;
 import ir.maktab.finalprojectphase4.data.dto.response.OfferResponseDTO;
 import ir.maktab.finalprojectphase4.data.dto.response.OrderResponseDTO;
 import ir.maktab.finalprojectphase4.data.enums.ExpertStatus;
+import ir.maktab.finalprojectphase4.data.enums.OfferStatus;
 import ir.maktab.finalprojectphase4.data.enums.OrderStatus;
 import ir.maktab.finalprojectphase4.data.enums.Role;
 import ir.maktab.finalprojectphase4.data.mapper.CommentMapper;
@@ -16,7 +17,6 @@ import ir.maktab.finalprojectphase4.data.repository.ExpertRepository;
 import ir.maktab.finalprojectphase4.exception.*;
 import ir.maktab.finalprojectphase4.service.EmailSenderService;
 import ir.maktab.finalprojectphase4.service.ExpertService;
-import ir.maktab.finalprojectphase4.validation.PictureValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -41,52 +41,37 @@ public class ExpertServiceImpl implements ExpertService {
     private final SubServiceServiceImpl subServiceService;
     private final OrderServiceImpl orderService;
     private final OfferServiceImpl offerService;
-
     private final BCryptPasswordEncoder passwordEncoder;
-    private final TokenServiceImpl tokenService;
+    private final ConfirmationTokenServiceImpl tokenService;
     private final EmailSenderService emailSenderService;
     @PersistenceContext
     private EntityManager entityManager;
 
     @Override
-    public void add(UserRegistrationDTO expertRegistrationDTO, byte[] expertPicture) {
-        if (expertRepository.existsByEmail(expertRegistrationDTO.getEmail()))
+    public String signUp(Expert expert) {
+        if (expertRepository.existsByEmail(expert.getEmail()))
             throw new DuplicateEmailException("this email already exist!");
-        if (expertRepository.existsByUsername(expertRegistrationDTO.getUsername()))
+        if (expertRepository.existsByUsername(expert.getUsername()))
             throw new DuplicateUsernameException("this username already exist!");
-        PictureValidator.isValidImageSize(expertPicture);
 
-        Expert expert = ExpertMapper.INSTANCE.registerDtoToModel(expertRegistrationDTO);
-        expert.setPersonalPhoto(expertPicture);
+        expert.setPassword(passwordEncoder.encode(expert.getPassword()));
         expert.setExpertStatus(ExpertStatus.NEW);
         expert.setRole(Role.ROLE_EXPERT);
-        expert.setIsActive(false);
         expert.setRate(0);
 
+        String token = UUID.randomUUID().toString();
+        ConfirmationToken confirmationToken = new ConfirmationToken(
+                token, expert, LocalDateTime.now(),LocalDateTime.now().plusMinutes(15));
+        confirmationToken.setToken(UUID.randomUUID().toString());
+        tokenService.add(confirmationToken);
 
-        Token token = new Token(expert);
-        token.setToken(UUID.randomUUID().toString());
-        tokenService.add(token);
-
-        SimpleMailMessage mailMessage = emailSenderService.createEmail(expert.getEmail(), token.getToken(), "expert");
+        SimpleMailMessage mailMessage = emailSenderService.createEmail(expert.getEmail(), confirmationToken.getToken(), "expert");
         emailSenderService.sendEmail(mailMessage);
 
         expertRepository.save(expert);
 
-    }
+        return token;
 
-    @Override
-    @Transactional
-    public void confirmExpertAccount(String confirmationToken) {
-        Optional<Token> token = tokenService.getToken(confirmationToken);
-        if (token.isEmpty())
-            throw new NotFoundException("token not found!");
-        if (token.get().getAccount().getIsActive())
-            throw new RegistrationException("this expert's account is currently active!");
-        Expert expert = findByEmail(token.get().getAccount().getEmail());
-        expert.setIsActive(true);
-        expert.setExpertStatus(ExpertStatus.WAITING);
-        update(expert);
     }
 
     @Override
@@ -126,6 +111,11 @@ public class ExpertServiceImpl implements ExpertService {
         Expert expert = findById(expertSubServiceDTO.getExpertId());
         if (!expert.getExpertStatus().equals(ExpertStatus.ACCEPTED))
             throw new ExpertStatusException("This expert does not accepted!");
+
+        for (SubService subService: expert.getSubServices())
+            if (subService.getId().equals(expertSubServiceDTO.getSubServiceId()))
+                throw new DuplicateExpertSubServiceException("You have already registered this service for this expert!");
+
         SubService subService = subServiceService.findById(expertSubServiceDTO.getSubServiceId());
         expert.addSubService(subService);
         expertRepository.save(expert);
@@ -136,7 +126,7 @@ public class ExpertServiceImpl implements ExpertService {
         Expert expert = findById(expertSubServiceDTO.getExpertId());
         SubService subService = subServiceService.findById(expertSubServiceDTO.getSubServiceId());
         if (!expert.getSubServices().contains(subService))
-            throw new ExpertSubServiceException("this Expert does not have this subService!");
+            throw new ExpertSubServiceException("This Expert does not have this subService!");
         expert.deleteSubService(subService);
         expertRepository.save(expert);
     }
@@ -144,9 +134,12 @@ public class ExpertServiceImpl implements ExpertService {
     @Override
     public void receivedNewComment(CommentRequestDTO commentRequestDTO) {
         Expert expert = findById(commentRequestDTO.getExpertId());
+        Orders order = orderService.findById(commentRequestDTO.getOrderId());
         Comment comment = CommentMapper.INSTANCE.requestDtoToModel(commentRequestDTO);
         expert.getComments().add(comment);
         expert.setRate();
+        order.setComment(comment);
+        orderService.update(order);
         expertRepository.save(expert);
     }
 
@@ -168,16 +161,6 @@ public class ExpertServiceImpl implements ExpertService {
         return expertResponseDTOList;
     }
 
-
-    @Override
-    public void login(LoginDTO loginDTO) {
-        Expert expert = ExpertMapper.INSTANCE.loginDtoToModel(loginDTO);
-        Optional<Expert> expertByUsername = expertRepository.findByUsername(expert.getUsername());
-        if (expertByUsername.isPresent())
-            if (!Objects.equals(expert.getPassword(), expertByUsername.get().getPassword()))
-                throw new IncorrectInformationException("Username or Password is Incorrect!");
-    }
-
     @Override
     public void changePassword(ChangePasswordDTO changePasswordDTO) {
         if (changePasswordDTO.getPassword().equals(changePasswordDTO.getNewPassword()))
@@ -185,7 +168,7 @@ public class ExpertServiceImpl implements ExpertService {
         else if (!changePasswordDTO.getNewPassword().equals(changePasswordDTO.getConfirmNewPassword()))
             throw new ChangePasswordException("newPassword and confirmNewPassword must be same!");
         Expert expert = findByUsername(changePasswordDTO.getUsername());
-        expert.setPassword(changePasswordDTO.getPassword());
+        expert.setPassword(passwordEncoder.encode(changePasswordDTO.getPassword()));
         expertRepository.save(expert);
     }
 
@@ -209,8 +192,35 @@ public class ExpertServiceImpl implements ExpertService {
     }
 
     @Override
-    public void submitAnOffer(OfferRequestDTO offerRequestDTO) {
-        orderService.receivedNewOffer(offerRequestDTO);
+    public void submitAnOffer(Long expertID, OfferRequestDTO offerRequestDTO) {
+        Expert expert = findById(expertID);
+        Orders order = orderService.findById(offerRequestDTO.getOrderId());
+        if (!(order.getOrderStatus().equals(OrderStatus.WAITING_FOR_EXPERTS_OFFER) ||
+                order.getOrderStatus().equals(OrderStatus.WAITING_FOR_CHOSE_EXPERT)))
+            throw new OrderStatusException("This order accepted by an other expert!");
+
+        for (Offer offer: order.getOffers())
+            if (offer.getExpert().equals(expert))
+                throw new DuplicateOfferException("You have already submitted an offer for this order!");
+
+        if (!(offerRequestDTO.getOfferPrice() >= order.getSubService().getBasePrice()))
+            throw new InvalidProposedPriceException("The proposed price cannot be less than the base price!");
+
+        if (offerRequestDTO.getDurationOfWork() <= 0) {
+            throw new IncorrectInformationException("Your offer must include the duration of the work");
+        }
+
+        Offer offer = new Offer(expert,
+                order,
+                LocalDateTime.now(),
+                offerRequestDTO.getOfferPrice(),
+                offerRequestDTO.getProposedStartDate(),
+                offerRequestDTO.getDurationOfWork(),
+                offerRequestDTO.getProposedStartDate(),
+                OfferStatus.WAITING);
+
+        offerService.add(offer);
+        orderService.receivedNewOffer(expert, order);
     }
 
     @Override
@@ -227,7 +237,7 @@ public class ExpertServiceImpl implements ExpertService {
 
     @Override
     public void changeExpertAccountActivation(Long expertId, boolean isActive) {
-        expertRepository.changeActivation(expertId, isActive);
+        expertRepository.changeEnabled(expertId, isActive);
     }
 
     @Override
@@ -264,13 +274,16 @@ public class ExpertServiceImpl implements ExpertService {
             String username = "%" + expertDTO.getUsername() + "%";
             predicateList.add(criteriaBuilder.like(expertRoot.get("username"), username));
         }
-        if (expertDTO.getIsActive() != null) {
-            predicateList.add(criteriaBuilder.equal(expertRoot.get("isActive"), expertDTO.getIsActive()));
+        if (expertDTO.getEnabled() != null) {
+            predicateList.add(criteriaBuilder.equal(expertRoot.get("enabled"), expertDTO.getEnabled()));
         }
         if (expertDTO.getExpertStatus() != null) {
             predicateList.add(criteriaBuilder.equal(expertRoot.get("expertStatus"), expertDTO.getExpertStatus()));
         }
 
+        if (expertDTO.getRate() != null) {
+            predicateList.add(criteriaBuilder.equal(expertRoot.get("rate"), expertDTO.getRate()));
+        }
         if (expertDTO.getMinRate() == null && expertDTO.getMaxRate() != null) {
             predicateList.add(criteriaBuilder.lt(expertRoot.get("rate"), expertDTO.getMaxRate()));
         }
@@ -281,6 +294,9 @@ public class ExpertServiceImpl implements ExpertService {
             predicateList.add(criteriaBuilder.between(expertRoot.get("rate"), expertDTO.getMinRate(), expertDTO.getMaxRate()));
         }
 
+        if (expertDTO.getCredit() != null ) {
+            predicateList.add(criteriaBuilder.equal(expertRoot.get("credit"), expertDTO.getCredit()));
+        }
         if (expertDTO.getMinCredit() == null && expertDTO.getMaxCredit() != null) {
             predicateList.add(criteriaBuilder.lt(expertRoot.get("credit"), expertDTO.getMaxCredit()));
         }
@@ -294,9 +310,9 @@ public class ExpertServiceImpl implements ExpertService {
         if (expertDTO.getMinCreationDate() != null && expertDTO.getMaxCreationDate() != null) {
             predicateList
                     .add(criteriaBuilder
-                            .between(expertRoot.get("creationDate"),
-                                    LocalDateTime.parse(expertDTO.getMinCreationDate()),
-                                    LocalDateTime.parse(expertDTO.getMaxCreationDate())));
+                            .between(expertRoot.get("registeryDate"),
+                                    expertDTO.getMinCreationDate(),
+                                    expertDTO.getMaxCreationDate()));
         }
     }
 
@@ -325,27 +341,28 @@ public class ExpertServiceImpl implements ExpertService {
     }
 
     @Override
-    public List<Offer> showOfferHistory(Long expertId, boolean isAccept) {
-        return offerService.selectOfferByExpertIdAndIsAccept(expertId, isAccept);
+    public List<Offer> showOfferHistory(Long expertId) {
+        Expert expert = findById(expertId);
+        return offerService.selectOfferByExpertIdAndIsAccept(expert);
     }
 
     @Override
-    public List<OrderResponseDTO> showOrderHistory(Long expertId, boolean isAccept) {
+    public List<OrderResponseDTO> showOrderHistory(Long expertId) {
         List<OrderResponseDTO> orders = new ArrayList<>();
-        List<Offer> expertOffers = showOfferHistory(expertId, isAccept);
+        List<Offer> expertOffers = showOfferHistory(expertId);
         expertOffers.forEach(offer ->
-                orders.add(OrderMapper.INSTANCE.modelToResponseDto(offer.getOrders())));
+                orders.add(OrderMapper.INSTANCE.modelToResponseDto(offer.getOrder())));
         return orders;
     }
 
     @Override
-    public List<OrderResponseDTO> showOrderHistoryByOrderStatus(Long expertId, boolean isAccept, OrderStatus orderStatus) {
+    public List<OrderResponseDTO> showOrderHistoryByOrderStatus(Long expertId, OrderStatus orderStatus) {
         List<OrderResponseDTO> orders = new ArrayList<>();
-        List<Offer> expertOffers = showOfferHistory(expertId, isAccept);
+        List<Offer> expertOffers = showOfferHistory(expertId);
         expertOffers.stream()
-                .filter(offer -> offer.getOrders().getOrderStatus().equals(orderStatus))
+                .filter(offer -> offer.getOrder().getOrderStatus().equals(orderStatus))
                 .forEach(offer -> {
-                    orders.add(OrderMapper.INSTANCE.modelToResponseDto(offer.getOrders()));
+                    orders.add(OrderMapper.INSTANCE.modelToResponseDto(offer.getOrder()));
                 });
         return orders;
     }
@@ -354,5 +371,26 @@ public class ExpertServiceImpl implements ExpertService {
     public Long showCredit(Long expertId) {
         Expert expert = findById(expertId);
         return expert.getCredit();
+    }
+
+    @Override
+    public int viewNumberOfRegisteredOffers(Long expertId) {
+        if (!expertRepository.existsById(expertId))
+            throw new NotFoundException("This expert was not found!");
+        int count = offerService.numberOfSubmitOffers(expertId);
+        if (count == 0)
+            throw new ExpertDoesNotHaveRegisteredOffer("This expert does not have a registered offer!");
+        return count;
+    }
+
+
+    @Override
+    public int viewNumberOfRegisteredOffersByOfferStatus(ExpertOffersStatusDTO expertOffersStatusDTO) {
+        if (!expertRepository.existsById(expertOffersStatusDTO.getExpertId()))
+            throw new NotFoundException("This expert was not found!");
+        int count = offerService.numberOfSubmitOffersByOfferStatus(expertOffersStatusDTO.getExpertId(), expertOffersStatusDTO.getOfferStatus());
+        if (count == 0)
+            throw new ExpertDoesNotHaveRegisteredOffer("This expert does not have a registered offer!");
+        return count;
     }
 }

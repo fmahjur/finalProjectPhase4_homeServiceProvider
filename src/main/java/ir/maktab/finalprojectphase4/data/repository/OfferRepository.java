@@ -29,4 +29,10 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
     List<Offer> findByOrdersSortByOfferPriceAndExpertRate(Orders order);
 
     List<Offer> findOffersByExpertAndOfferStatus(Expert expert, OfferStatus offerStatus);
+
+    @Query("select count(o.expert.id) from Offer o where o.expert.id= :expertId")
+    int numberOfSubmitOffers(Long expertId);
+
+    @Query("select count(o.expert.id) from Offer o where o.expert.id= :expertId and o.offerStatus= :offerStatus")
+    int numberOfSubmitOffersByOfferStatus(Long expertId, OfferStatus offerStatus);
 }

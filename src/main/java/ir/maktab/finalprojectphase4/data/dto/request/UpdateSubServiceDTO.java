@@ -4,7 +4,6 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -13,5 +12,5 @@ public class UpdateSubServiceDTO {
     Long subServiceID;
     String name;
     String description;
-    Double basePrice;
+    Long basePrice;
 }

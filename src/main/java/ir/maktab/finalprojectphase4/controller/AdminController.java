@@ -2,31 +2,56 @@ package ir.maktab.finalprojectphase4.controller;
 
 import ir.maktab.finalprojectphase4.data.dto.request.*;
 import ir.maktab.finalprojectphase4.data.dto.response.*;
+import ir.maktab.finalprojectphase4.data.enums.Role;
+import ir.maktab.finalprojectphase4.data.model.Admin;
 import ir.maktab.finalprojectphase4.service.AdminService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/admin")
+//@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class AdminController {
     private final AdminService adminService;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+
+/*    @PostConstruct
+    private void test(){
+        String password = bCryptPasswordEncoder.encode("Admin@123");
+        Admin admin = new Admin("customer1",
+                "customer1",
+                "reihaneh763@gmail.com",
+                "customer1",
+                password,
+                Role.ROLE_EXPERT);
+
+        adminService.saveAccount(admin);
+    }*/
 
     @PostMapping("/add-base-service")
     public void addMainService(@RequestBody BaseServiceRequestDTO baseServiceRequestDTO) {
         adminService.addNewService(baseServiceRequestDTO);
     }
 
-    @DeleteMapping("/delete-base-service/{id}")
-    public void deleteMainService(@PathVariable Long id) {
-        adminService.removeService(id);
+    @DeleteMapping("/delete-base-service/{baseServiceId}")
+    public void deleteMainService(@PathVariable Long baseServiceId) {
+        adminService.removeService(baseServiceId);
     }
 
     @PostMapping("/add-sub-service")
     public void addSubService(@RequestBody SubServiceRequestDTO subServiceRequestDTO) {
         adminService.addNewSubService(subServiceRequestDTO);
+    }
+
+    @DeleteMapping("/delete-sub-service/{subServiceId}")
+    public void deleteSubService(@PathVariable Long subServiceId) {
+        adminService.removeSubService(subServiceId);
     }
 
     @PostMapping("/allocation-service-to-expert")
@@ -69,7 +94,7 @@ public class AdminController {
         adminService.confirmExpert(expertId);
     }
 
-    @PutMapping("/change-expert-status/{expertId}")
+    @PutMapping("/change-expert-status")
     public void changeExpertStatus(@RequestBody ChangeExpertStatusDTO changeExpertStatusDTO) {
         adminService.changeExpertStatus(changeExpertStatusDTO);
     }

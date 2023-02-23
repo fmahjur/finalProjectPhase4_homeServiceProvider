@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-public class SubService extends BaseEntity implements Service {
+public class SubService extends BaseEntity {
     @ManyToOne
     BaseService baseService;
 
@@ -24,7 +24,7 @@ public class SubService extends BaseEntity implements Service {
 
     String description;
 
-    Double basePrice;
+    Long basePrice;
 
     @ManyToMany(cascade = CascadeType.ALL)
     List<Expert> experts = new ArrayList<>();
@@ -36,7 +36,7 @@ public class SubService extends BaseEntity implements Service {
         this.isDeleted = false;
     }
 
-    public SubService(Long id, BaseService baseService, String name, String description, Double basePrice) {
+    public SubService(Long id, BaseService baseService, String name, String description, Long basePrice) {
         super(id);
         this.baseService = baseService;
         this.name = name;
@@ -45,7 +45,7 @@ public class SubService extends BaseEntity implements Service {
         this.isDeleted = false;
     }
 
-    public SubService(BaseService baseService, String name, String description, Double basePrice) {
+    public SubService(BaseService baseService, String name, String description, Long basePrice) {
         this.baseService = baseService;
         this.name = name;
         this.description = description;

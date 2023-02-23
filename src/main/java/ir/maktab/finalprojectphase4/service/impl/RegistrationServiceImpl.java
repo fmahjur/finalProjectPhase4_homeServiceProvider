@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class RegistrationServiceImpl {
 
-    private final AccountServiceImpl accountService;
+    private final AccountService accountService;
     private final CustomerServiceImpl customerService;
     private final ExpertServiceImpl expertService;
     private final ConfirmationTokenServiceImpl confirmationTokenService;
@@ -32,7 +32,7 @@ public class RegistrationServiceImpl {
                         )
         );
 
-        String link = "http://localhost:8080/registration/confirm?token=" + token;
+        String link = "http://localhost:8080/registration/customer/confirm?token=" + token;
         emailSender.sendEmail(
                 customerRegistrationDTO.getEmail(),
                 buildEmail(customerRegistrationDTO.getFirstname(), link));
@@ -54,7 +54,7 @@ public class RegistrationServiceImpl {
                 )
         );
 
-        String link = "http://localhost:8080/registration/confirm?token=" + token;
+        String link = "http://localhost:8080/registration/expert/confirm?token=" + token;
         emailSender.sendEmail(
                 expertRegistrationDTO.getEmail(),
                 buildEmail(expertRegistrationDTO.getFirstname(), link));

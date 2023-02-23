@@ -2,6 +2,7 @@ package ir.maktab.finalprojectphase4.service;
 
 import ir.maktab.finalprojectphase4.data.dto.request.OfferRequestDTO;
 import ir.maktab.finalprojectphase4.data.dto.response.OfferResponseDTO;
+import ir.maktab.finalprojectphase4.data.enums.OfferStatus;
 import ir.maktab.finalprojectphase4.data.model.Expert;
 import ir.maktab.finalprojectphase4.data.model.Offer;
 
@@ -24,5 +25,9 @@ public interface OfferService {
 
     List<OfferResponseDTO> selectAllExpertOffersRejected(Expert expert);
 
-    List<Offer> selectOfferByExpertIdAndIsAccept(Long expertId, boolean isAccept);
+    List<Offer> selectOfferByExpertIdAndIsAccept(Expert expert);
+
+    int numberOfSubmitOffers(Long expertId);
+
+    int numberOfSubmitOffersByOfferStatus(Long expertId, OfferStatus offerStatus);
 }
