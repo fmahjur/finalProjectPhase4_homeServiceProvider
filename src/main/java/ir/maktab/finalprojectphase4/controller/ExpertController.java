@@ -20,7 +20,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/Expert")
-//@PreAuthorize("hasRole('EXPERT')")
 @RequiredArgsConstructor
 public class ExpertController {
     private final ExpertServiceImpl expertService;
